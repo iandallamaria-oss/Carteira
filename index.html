@@ -2,8 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="format-detection" content="telephone=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0E1418">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -40,7 +39,7 @@ body{
 .num{font-family:var(--mono); font-feature-settings:"tnum" 1,"zero" 1; letter-spacing:-.01em}
 .pos{color:var(--pos)} .neg{color:var(--neg)} .gold{color:var(--gold)}
 button{font-family:inherit; cursor:pointer; border:none; background:none; color:inherit}
-input,select,textarea{font-family:inherit; font-size:16px; -webkit-user-select:text; user-select:text; -webkit-touch-callout:default; touch-action:manipulation}
+input,select{font-family:inherit}
 :focus-visible{outline:2px solid var(--blue); outline-offset:2px; border-radius:6px}
 
 /* ---------- shell ---------- */
@@ -59,7 +58,7 @@ header.top{
 .iconbtn:active{background:var(--surface2)}
 
 /* meta bar */
-.metawrap{margin:12px 18px 4px; padding:13px 15px; background:var(--surface); border:1px solid var(--line);
+.metawrap{cursor:pointer; margin:12px 18px 4px; padding:13px 15px; background:var(--surface); border:1px solid var(--line);
   border-radius:var(--r); position:relative; overflow:hidden}
 .metawrap::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--gold)}
 .metarow{display:flex; justify-content:space-between; align-items:baseline; gap:8px}
@@ -106,8 +105,8 @@ main{padding:6px 18px 0}
 .chip{flex:0 0 auto;padding:7px 13px;border-radius:99px;border:1px solid var(--line);background:var(--surface);
   font-size:12.5px;color:var(--muted);font-weight:500}
 .chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
-.search{width:100%;min-width:0;padding:11px 13px;border-radius:12px;border:1px solid var(--line);background:var(--surface);
-  color:var(--ink);font-size:16px;margin-bottom:12px}
+.search{width:100%;padding:11px 13px;border-radius:12px;border:1px solid var(--line);background:var(--surface);
+  color:var(--ink);font-size:14px;margin-bottom:12px}
 .search::placeholder{color:var(--muted2)}
 
 .op{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:13px 15px;margin-bottom:10px;
@@ -192,18 +191,16 @@ nav.tabs svg{width:21px;height:21px;stroke:var(--muted2);fill:none;stroke-width:
   background:var(--bg2);border-radius:22px 22px 0 0;border:1px solid var(--line);border-bottom:none;
   transform:translateY(100%);transition:transform .32s cubic-bezier(.2,.8,.2,1);max-height:94dvh;overflow-y:auto;
   padding:8px 18px calc(env(safe-area-inset-bottom) + 18px)}
-.sheet.show{transform:none}
+.sheet.show{transform:translateY(0)}
 .grip{width:38px;height:4px;border-radius:99px;background:var(--line2);margin:8px auto 6px}
 .sheet h2{font-size:18px;font-weight:600;margin:6px 2px 16px;letter-spacing:-.01em}
 .field{margin-bottom:13px}
 .field label{display:block;font-size:11.5px;color:var(--muted);margin-bottom:6px;letter-spacing:.02em}
-.field input,.field select{width:100%;min-width:0;padding:12px 13px;border-radius:12px;border:1px solid var(--line);
-  background:var(--surface);color:var(--ink);font-size:16px;-webkit-appearance:none;appearance:none}
+.field input,.field select{width:100%;padding:12px 13px;border-radius:12px;border:1px solid var(--line);
+  background:var(--surface);color:var(--ink);font-size:15px}
 .field input:focus,.field select:focus{border-color:var(--blue);outline:none}
-.field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none' stroke='%238A99A5' stroke-width='2'%3E%3Cpath d='M1 1l5 5 5-5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 13px center;padding-right:34px}
 .field .hint{font-size:10.5px;color:var(--muted2);margin-top:5px}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:11px}
-.row2 .field{min-width:0}
 .subhead{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted2);font-weight:600;
   margin:20px 2px 12px;padding-top:14px;border-top:1px solid var(--line)}
 .btnrow{display:flex;gap:10px;margin-top:20px}
@@ -256,6 +253,7 @@ nav.tabs svg{width:21px;height:21px;stroke:var(--muted2);fill:none;stroke-width:
     <button id="mCsv"><span class="mic">▦</span> Exportar planilha (.csv)</button>
     <button id="mImport"><span class="mic">⤒</span> Importar backup (.json)</button>
     <button id="mMeta"><span class="mic">◎</span> Definir meta de lucro</button>
+    <button id="mCaixa"><span class="mic">▤</span> Definir capital parado</button>
     <button id="mReset"><span class="mic">↺</span> Restaurar dados de exemplo</button>
     <input type="file" id="fileInput" accept="application/json" style="display:none">
   </div>
@@ -265,6 +263,7 @@ nav.tabs svg{width:21px;height:21px;stroke:var(--muted2);fill:none;stroke-width:
   <main>
     <section class="view active" id="view-resumo"></section>
     <section class="view" id="view-ops"></section>
+    <section class="view" id="view-ativos"></section>
     <section class="view" id="view-rel"></section>
   </main>
 
@@ -278,6 +277,10 @@ nav.tabs svg{width:21px;height:21px;stroke:var(--muted2);fill:none;stroke-width:
     <button class="tab" data-tab="ops">
       <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
       Operações
+    </button>
+    <button class="tab" data-tab="ativos">
+      <svg viewBox="0 0 24 24"><path d="M3 11l8.5-8.5a2 2 0 0 1 2.8 0l6.2 6.2a2 2 0 0 1 0 2.8L12 20z"/><circle cx="7.5" cy="7.5" r="1.3"/></svg>
+      Ativos
     </button>
     <button class="tab" data-tab="rel">
       <svg viewBox="0 0 24 24"><path d="M4 19V9m5 10V5m5 14v-7m5 7V4"/></svg>
@@ -406,11 +409,13 @@ nav.tabs svg{width:21px;height:21px;stroke:var(--muted2);fill:none;stroke-width:
 const SEED = [{"ativo":"Etherium","categoria":"Cripto","dataCompra":"2026-01-03","dataVenda":"2026-01-06","valorInvestido":700.6,"corretagem":1.4,"taxaVenda":3.23,"valorVenda":805.4},{"ativo":"Bitcoin","categoria":"Cripto","dataCompra":"2025-11-24","dataVenda":null,"valorInvestido":5019.98,"corretagem":18.740000000000002,"taxaVenda":0,"valorVenda":null},{"ativo":"Solana","categoria":"Cripto","dataCompra":"2025-11-24","dataVenda":null,"valorInvestido":1148.0,"corretagem":5.9,"taxaVenda":0,"valorVenda":null},{"ativo":"Etherium","categoria":"Cripto","dataCompra":"2026-01-07","dataVenda":null,"valorInvestido":3090.34,"corretagem":12.41,"taxaVenda":0,"valorVenda":null},{"ativo":"Quantitas FIF ações Montecristo","categoria":"Fundo","dataCompra":"2026-01-14","dataVenda":"2026-04-18","valorInvestido":1200.0,"corretagem":0,"taxaVenda":0,"valorVenda":1285.88},{"ativo":"Apex Capital","categoria":"Fundo","dataCompra":"2026-01-14","dataVenda":"2026-02-20","valorInvestido":1300.0,"corretagem":0,"taxaVenda":0,"valorVenda":1372.21},{"ativo":"SPX Capital","categoria":"Fundo","dataCompra":"2026-01-14","dataVenda":"2026-05-19","valorInvestido":1300.0,"corretagem":0,"taxaVenda":0,"valorVenda":1311.47},{"ativo":"ITLC34","categoria":"BDR / Exterior","dataCompra":"2026-01-23","dataVenda":"2026-01-28","valorInvestido":1565.4,"corretagem":0,"taxaVenda":0.53,"valorVenda":1675.6},{"ativo":"ITLC34","categoria":"BDR / Exterior","dataCompra":"2026-01-23","dataVenda":"2026-01-28","valorInvestido":2734.2000000000003,"corretagem":0,"taxaVenda":0.94,"valorVenda":2983.64},{"ativo":"XTZ","categoria":"Cripto","dataCompra":"2026-01-28","dataVenda":null,"valorInvestido":123.52,"corretagem":0.49,"taxaVenda":0,"valorVenda":null},{"ativo":"ITLC34","categoria":"BDR / Exterior","dataCompra":"2026-03-17","dataVenda":"2026-04-01","valorInvestido":2103.88,"corretagem":0,"taxaVenda":0,"valorVenda":2284.53},{"ativo":"Novo Nordisk","categoria":"BDR / Exterior","dataCompra":"2026-01-29","dataVenda":null,"valorInvestido":6347.9,"corretagem":0.88,"taxaVenda":0,"valorVenda":null},{"ativo":"Hypera","categoria":"Ação BR","dataCompra":"2026-03-13","dataVenda":"2026-03-13","valorInvestido":1113.36,"corretagem":0,"taxaVenda":0,"valorVenda":1064.66},{"ativo":"American tower","categoria":"BDR / Exterior","dataCompra":"2026-01-30","dataVenda":"2026-02-27","valorInvestido":2898.95,"corretagem":0.88,"taxaVenda":0,"valorVenda":3041.04},{"ativo":"São Martinho","categoria":"Ação BR","dataCompra":"2026-04-20","dataVenda":null,"valorInvestido":2645.88,"corretagem":0,"taxaVenda":0,"valorVenda":null},{"ativo":"MSFT34","categoria":"BDR / Exterior","dataCompra":"2026-04-23","dataVenda":"2026-05-29","valorInvestido":2075.96,"corretagem":0,"taxaVenda":0,"valorVenda":2240.0},{"ativo":"Guepardo Long Bias","categoria":"Fundo","dataCompra":"2026-04-23","dataVenda":null,"valorInvestido":5000.0,"corretagem":0,"taxaVenda":0,"valorVenda":null},{"ativo":"IPCA + 2050","categoria":"Renda Fixa","dataCompra":"2026-04-07","dataVenda":null,"valorInvestido":1494.89,"corretagem":0.88,"taxaVenda":0,"valorVenda":null},{"ativo":"PRIO3","categoria":"Ação BR","dataCompra":"2026-05-06","dataVenda":"2026-05-06","valorInvestido":2296.4,"corretagem":0,"taxaVenda":0,"valorVenda":2318.08},{"ativo":"WEGE3","categoria":"Ação BR","dataCompra":"2026-05-11","dataVenda":null,"valorInvestido":2168.21,"corretagem":0,"taxaVenda":0,"valorVenda":null},{"ativo":"VLID3","categoria":"Ação BR","dataCompra":"2026-05-14","dataVenda":null,"valorInvestido":1700.56,"corretagem":0,"taxaVenda":0,"valorVenda":null},{"ativo":"BBAS3","categoria":"Ação BR","dataCompra":"2026-05-14","dataVenda":"2026-05-25","valorInvestido":1031.34,"corretagem":0,"taxaVenda":0,"valorVenda":1081.66},{"ativo":"MELI34","categoria":"BDR / Exterior","dataCompra":"2026-05-20","dataVenda":"2026-05-27","valorInvestido":1207.84,"corretagem":0,"taxaVenda":0,"valorVenda":1285.51},{"ativo":"BBAS3","categoria":"Ação BR","dataCompra":"2026-06-08","dataVenda":null,"valorInvestido":1150.58,"corretagem":0,"taxaVenda":0,"valorVenda":null},{"ativo":"TMCO34","categoria":"BDR / Exterior","dataCompra":"2026-06-10","dataVenda":null,"valorInvestido":1706.66,"corretagem":0,"taxaVenda":0,"valorVenda":null},{"ativo":"MELI34","categoria":"BDR / Exterior","dataCompra":"2026-06-12","dataVenda":"2026-06-15","valorInvestido":1678.05,"corretagem":0,"taxaVenda":0,"valorVenda":1751.95},{"ativo":"SLCE3","categoria":"Ação BR","dataCompra":"2026-06-12","dataVenda":null,"valorInvestido":1006.56,"corretagem":0,"taxaVenda":0,"valorVenda":null}];
 
 /* ---------------- state + storage ---------------- */
-let DB = { ops:[], meta:2000 };
+let DB = { ops:[], meta:2000, metas:{}, caixa:0 };
 let activeTab='resumo';
 let editingId=null;
 let opFilter='todas', opSearch='';
 let relView='ano', seasonMetric='mov';
+let resumoYear='all';
+let ativoYear='all', ativoSearch='';
 
 const uid=()=> Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 
@@ -442,8 +447,8 @@ function initSB(){
   return sb;
 }
 
-function seedNow(){ DB = { meta:2000, ops: SEED.map(o=>({ id:uid(), ...o })) }; }
-function normalize(){ if(!Array.isArray(DB.ops)) DB.ops=[]; if(typeof DB.meta!=='number') DB.meta=2000; DB.ops.forEach(o=>{ if(!o.id)o.id=uid(); }); }
+function seedNow(){ DB = { meta:2000, metas:{}, caixa:0, ops: SEED.map(o=>({ id:uid(), ...o })) }; }
+function normalize(){ if(!Array.isArray(DB.ops)) DB.ops=[]; if(typeof DB.meta!=='number') DB.meta=2000; if(!DB.metas||typeof DB.metas!=='object') DB.metas={}; if(typeof DB.caixa!=='number') DB.caixa=0; DB.ops.forEach(o=>{ if(!o.id)o.id=uid(); }); }
 function cacheLocal(){ try{ localStorage.setItem(LSKEY, JSON.stringify(DB)); }catch(e){} }
 
 async function loadLocal(){
@@ -583,12 +588,46 @@ function summary(){
   const totalInvestedClosed = cl.reduce((s,o)=>s+(+o.valorInvestido||0),0);
   return {realizado, capOpen, amSimple, amWeighted, hit, nOpen:op.length, nClosed:cl.length, wins, totalInvestedClosed};
 }
+function summaryFor(year){
+  let cl=closedOps();
+  if(year && year!=='all') cl=cl.filter(o=>o.dataVenda.slice(0,4)===year);
+  const realizado=cl.reduce((s,o)=>s+calc(o).resultadoRS,0);
+  const ams=cl.map(o=>calc(o).retornoAM);
+  const amSimple=ams.length?ams.reduce((a,b)=>a+b,0)/ams.length:0;
+  let wsum=0,w=0; cl.forEach(o=>{const c=calc(o);wsum+=c.retornoAM*c.vi;w+=c.vi;});
+  const amWeighted=w?wsum/w:0;
+  const wins=cl.filter(o=>calc(o).resultadoRS>0).length;
+  const hit=cl.length?wins/cl.length:0;
+  return {realizado,amSimple,amWeighted,hit,wins,nClosed:cl.length};
+}
+function openSummary(){ const op=openOps(); return {capOpen:op.reduce((s,o)=>s+(+o.valorInvestido||0),0), nOpen:op.length}; }
+function resumoYears(){
+  const s=new Set();
+  DB.ops.forEach(o=>{ if(o.dataVenda) s.add(o.dataVenda.slice(0,4)); if(o.dataCompra) s.add(o.dataCompra.slice(0,4)); });
+  if(DB.metas) Object.keys(DB.metas).forEach(y=>s.add(y));
+  return ['all', ...[...s].sort().reverse()];
+}
+function metaFor(year){
+  if(year==='all'){ return resumoYears().filter(y=>y!=='all').reduce((t,y)=>t+metaFor(y),0); }
+  return (DB.metas && DB.metas[year]!=null)? (+DB.metas[year]||0) : (+DB.meta||0);
+}
 function allocByCat(){
   const m={};
   openOps().forEach(o=>{ const k=o.categoria||'Outro'; m[k]=(m[k]||0)+(+o.valorInvestido||0); });
   return Object.entries(m).sort((a,b)=>b[1]-a[1]);
 }
-const CATCOLOR={'Ação BR':'#46C18B','BDR / Exterior':'#5B9BD5','Cripto':'#D4AC44','Fundo':'#9b7ad4','Renda Fixa':'#e09a4a','FII':'#4ec0c0','Outro':'#8A99A5'};
+function byAsset(year){
+  const m={};
+  const ensure=(k,cat)=>{ if(!m[k]) m[k]={ativo:k,categoria:cat||'',n:0,invested:0,result:0,wins:0,openN:0,openCap:0}; return m[k]; };
+  closedOps().forEach(o=>{
+    if(year && year!=='all' && o.dataVenda.slice(0,4)!==year) return;
+    const e=ensure(o.ativo||'—',o.categoria); const c=calc(o);
+    e.n++; e.invested+=(+o.valorInvestido||0); e.result+=c.resultadoRS; if(c.resultadoRS>0)e.wins++;
+  });
+  openOps().forEach(o=>{ const e=ensure(o.ativo||'—',o.categoria); e.openN++; e.openCap+=(+o.valorInvestido||0); });
+  return Object.values(m).sort((a,b)=> (b.result-a.result) || (b.openCap-a.openCap));
+}
+const CATCOLOR={'Ação BR':'#46C18B','BDR / Exterior':'#5B9BD5','Cripto':'#D4AC44','Fundo':'#9b7ad4','Renda Fixa':'#e09a4a','FII':'#4ec0c0','Outro':'#8A99A5','Caixa (parado)':'#6B7A86'};
 
 /* movimentação: capital aplicado por ANO/MÊS da data de COMPRA ; resultado por data de VENDA */
 function byYear(){
@@ -619,90 +658,150 @@ function years(){
 
 /* ---------------- render: meta ---------------- */
 function renderMeta(){
-  const {realizado}=summary();
-  const meta=DB.meta||0;
+  const yl = resumoYear==='all'?'Acumulado':resumoYear;
+  const realizado = summaryFor(resumoYear).realizado;
+  const meta = metaFor(resumoYear);
   const p=meta>0? Math.max(0,Math.min(1,realizado/meta)):0;
   const el=document.getElementById('metaWrap');
   el.innerHTML=`
     <div class="metarow">
-      <span class="metalabel">Meta de lucro realizado</span>
+      <span class="metalabel">Meta de lucro · ${yl}</span>
       <span class="metaval num ${realizado>=0?'pos':'neg'}">${sign(realizado)}${brl(realizado)}</span>
     </div>
     <div class="track"><div class="fill" style="width:${p*100}%"></div></div>
     <div class="metafoot">
       <span class="num">${(p*100).toLocaleString('pt-BR',{maximumFractionDigits:0})}% da meta</span>
-      <span>meta <b class="num gold">${brlc(meta)}</b></span>
+      <span>meta <b class="num gold">${brlc(meta)}</b>${resumoYear==='all'?' <span style="color:var(--muted2)">(soma dos anos)</span>':''} · <span style="color:var(--blue)">editar</span></span>
     </div>`;
 }
 
 /* ---------------- render: resumo ---------------- */
 function renderResumo(){
-  const s=summary();
+  const y=resumoYear;
+  const s=summaryFor(y);
+  const os=openSummary();
   const v=document.getElementById('view-resumo');
+  const caixa=+DB.caixa||0;
   const alloc=allocByCat();
-  const totAlloc=alloc.reduce((a,b)=>a+b[1],0)||1;
+  const allocView = caixa>0 ? [...alloc, ['Caixa (parado)', caixa]] : alloc;
+  const totAlloc=allocView.reduce((a,b)=>a+b[1],0)||1;
+  const yl = y==='all'?'Acumulado':y;
+  const chips = resumoYears().map(k=>`<button class="chip ${resumoYear===k?'on':''}" data-yr="${k}">${k==='all'?'Acumulado':k}</button>`).join('');
   v.innerHTML=`
-    <div class="section-h">Posição atual</div>
+    <div class="filterbar" style="margin:8px 0 4px">${chips}</div>
+    <div class="section-h">Desempenho · ${yl}</div>
     <div class="grid2">
       <div class="card hl">
         <div class="k">Resultado realizado <span style="color:var(--muted2)">· ${s.nClosed} encerradas</span></div>
         <div class="v num ${s.realizado>=0?'pos':'neg'}">${sign(s.realizado)}${brl(s.realizado)}</div>
-        <div class="sub">Taxa de acerto <b class="num" style="color:var(--ink)">${pct(s.hit,0)}</b> · ${s.wins} de ${s.nClosed} no positivo</div>
-      </div>
-      <div class="card">
-        <div class="k">Capital aplicado <span class="dot" style="background:var(--gold)"></span></div>
-        <div class="v num">${brl(s.capOpen)}</div>
-        <div class="sub">${s.nOpen} posições em aberto</div>
+        <div class="sub">${s.nClosed? `Taxa de acerto <b class="num" style="color:var(--ink)">${pct(s.hit,0)}</b> · ${s.wins} de ${s.nClosed} no positivo` : 'Nenhuma operação encerrada neste período'}</div>
       </div>
       <div class="card">
         <div class="k">Retorno médio a.m.</div>
         <div class="v num ${s.amSimple>=0?'pos':'neg'}">${pct(s.amSimple)}</div>
         <div class="sub">média simples</div>
       </div>
-      <div class="card" style="grid-column:1/-1">
-        <div class="k">Retorno a.m. ponderado pelo valor investido</div>
-        <div class="v num ${s.amWeighted>=0?'pos':'neg'}" style="font-size:22px">${pct(s.amWeighted)}</div>
-        <div class="sub">reflete melhor o desempenho real da carteira</div>
+      <div class="card">
+        <div class="k">Retorno a.m. ponderado</div>
+        <div class="v num ${s.amWeighted>=0?'pos':'neg'}">${pct(s.amWeighted)}</div>
+        <div class="sub">pelo valor investido</div>
       </div>
     </div>
 
-    <div class="section-h">Onde está o capital aberto</div>
+    <div class="section-h">Patrimônio · agora</div>
+    <div class="card hl">
+      <div class="k">Patrimônio total</div>
+      <div class="v num">${brl(os.capOpen + caixa)}</div>
+      <div class="sub">aplicado <b class="num" style="color:var(--ink)">${brlc(os.capOpen)}</b> + parado <b class="num" style="color:var(--ink)">${brlc(caixa)}</b></div>
+    </div>
+    <div class="grid2" style="margin-top:11px">
+      <div class="card">
+        <div class="k">Capital aplicado <span class="dot" style="background:var(--gold)"></span></div>
+        <div class="v num">${brl(os.capOpen)}</div>
+        <div class="sub">${os.nOpen} posições abertas</div>
+      </div>
+      <div class="card" id="caixaCard" style="cursor:pointer">
+        <div class="k">Capital parado <span class="dot" style="background:var(--muted)"></span></div>
+        <div class="v num">${brl(caixa)}</div>
+        <div class="sub" style="color:var(--blue)">tocar para editar</div>
+      </div>
+    </div>
+
+    <div class="section-h">Onde está o patrimônio</div>
     <div class="card">
-      ${alloc.length? `<div class="alloc">${alloc.map(([cat,val])=>`
+      ${allocView.length? `<div class="alloc">${allocView.map(([cat,val])=>`
         <div class="arow">
           <span class="acat">${cat}</span>
           <span class="abar"><i style="width:${val/totAlloc*100}%;background:${CATCOLOR[cat]||'#8A99A5'}"></i></span>
           <span class="aval"><span class="num">${brlc(val)}</span><span class="apct num">${pct(val/totAlloc,0)}</span></span>
         </div>`).join('')}</div>`
-        : `<div style="color:var(--muted);font-size:13px;text-align:center;padding:8px">Nenhuma posição em aberto.</div>`}
+        : `<div style="color:var(--muted);font-size:13px;text-align:center;padding:8px">Sem capital aplicado ou parado ainda.</div>`}
     </div>
   `;
+}
+
+/* ---------------- render: ativos ---------------- */
+function renderAtivos(){
+  const v=document.getElementById('view-ativos');
+  const y=ativoYear;
+  const yl=y==='all'?'Acumulado':y;
+  let list=byAsset(y);
+  if(ativoSearch) list=list.filter(a=>a.ativo.toLowerCase().includes(ativoSearch.toLowerCase()));
+  const totalRes=list.reduce((s,a)=>s+a.result,0);
+  const chips=resumoYears().map(k=>`<button class="chip ${ativoYear===k?'on':''}" data-ayr="${k}">${k==='all'?'Acumulado':k}</button>`).join('');
+  let html=`
+    <div class="filterbar" style="margin:8px 0 10px">${chips}</div>
+    <input class="search" id="ativoSearch" type="text" placeholder="Buscar ativo…" value="${ativoSearch.replace(/"/g,'&quot;')}">
+    <div class="card hl" style="margin-bottom:14px">
+      <div class="k">Resultado total por ativo · ${yl}</div>
+      <div class="v num ${totalRes>=0?'pos':'neg'}">${sign(totalRes)}${brl(totalRes)}</div>
+      <div class="sub">${list.filter(a=>a.n>0).length} ativos com operações encerradas</div>
+    </div>`;
+  if(!list.length){
+    html+=`<div class="empty"><div class="e-ic">◇</div><h3>Nada por aqui</h3><p>Nenhum ativo neste período.</p></div>`;
+  }else{
+    html+=list.map(a=>{
+      const cls=a.n===0?'open':a.result>0?'win':a.result<0?'loss':'';
+      const ret=a.invested>0?a.result/a.invested:null;
+      return `<div class="op ${cls}">
+        <div class="op-top">
+          <div><div class="op-name">${a.ativo}</div><div class="op-cat">${a.categoria}</div></div>
+          <div class="op-res">
+            ${a.n>0
+              ? `<div class="r1 num ${a.result>=0?'pos':'neg'}">${sign(a.result)}${brl(a.result)}</div>
+                 <div class="r2 num ${a.result>=0?'pos':'neg'}">${ret!=null?sign(ret)+pct(ret):''}</div>`
+              : `<div class="r1 num" style="color:var(--gold)">${brlc(a.openCap)}</div><div class="r2">só em aberto</div>`}
+          </div>
+        </div>
+        <div class="op-meta">
+          ${a.n>0?`<span><b>${a.n}</b> encerrada${a.n>1?'s':''}</span><span>Acerto <b>${pct(a.wins/a.n,0)}</b></span><span>Invest. <b class="num">${brlc(a.invested)}</b></span>`:''}
+          ${a.openN>0?`<span class="badge open">${a.openN} em aberto · ${brlc(a.openCap)}</span>`:''}
+        </div>
+      </div>`;
+    }).join('');
+  }
+  v.innerHTML=html;
 }
 
 /* ---------------- render: operações ---------------- */
 function opClass(o){ const c=calc(o); if(!c.closed) return 'open'; return c.resultadoRS>0?'win':c.resultadoRS<0?'loss':''; }
 function renderOps(){
   const v=document.getElementById('view-ops');
-  const chips=[['todas','Todas'],['abertas','Abertas'],['encerradas','Encerradas']];
-  v.innerHTML=`
-    <div class="filterbar">${chips.map(([k,l])=>`<button class="chip ${opFilter===k?'on':''}" data-f="${k}">${l}</button>`).join('')}</div>
-    <input class="search" id="opSearch" type="text" enterkeyhint="search" placeholder="Buscar ativo…" value="${opSearch.replace(/"/g,'&quot;')}">
-    <div id="opList"></div>
-  `;
-  renderOpList();
-}
-function renderOpList(){
-  const wrap=document.getElementById('opList'); if(!wrap) return;
   let list=[...DB.ops];
   if(opFilter==='abertas') list=list.filter(o=>!calc(o).closed);
   if(opFilter==='encerradas') list=list.filter(o=>calc(o).closed);
   if(opSearch) list=list.filter(o=>(o.ativo||'').toLowerCase().includes(opSearch.toLowerCase()));
   list.sort((a,b)=> (b.dataCompra||'').localeCompare(a.dataCompra||''));
+
+  const chips=[['todas','Todas'],['abertas','Abertas'],['encerradas','Encerradas']];
+  let html=`
+    <div class="filterbar">${chips.map(([k,l])=>`<button class="chip ${opFilter===k?'on':''}" data-f="${k}">${l}</button>`).join('')}</div>
+    <input class="search" id="opSearch" placeholder="Buscar ativo…" value="${opSearch}">
+  `;
   if(!list.length){
-    wrap.innerHTML=`<div class="empty"><div class="e-ic">◇</div><h3>Nada por aqui</h3><p>Toque no + para registrar sua primeira operação.</p></div>`;
-    return;
-  }
-  wrap.innerHTML=list.map(o=>{
+    html+=`<div class="empty"><div class="e-ic">◇</div><h3>Nada por aqui</h3><p>Toque no + para registrar sua primeira operação.</p></div>`;
+  }else{
+    html+=list.map(o=>{
       const c=calc(o);
       if(c.closed){
         return `<button class="op ${opClass(o)}" data-id="${o.id}">
@@ -734,6 +833,8 @@ function renderOpList(){
         </button>`;
       }
     }).join('');
+  }
+  v.innerHTML=html;
 }
 
 /* ---------------- render: relatórios ---------------- */
@@ -826,6 +927,7 @@ function render(){
   renderMeta();
   if(activeTab==='resumo') renderResumo();
   else if(activeTab==='ops') renderOps();
+  else if(activeTab==='ativos') renderAtivos();
   else renderRel();
 }
 
@@ -916,8 +1018,7 @@ function importJSON(file){
   const r=new FileReader();
   r.onload=async()=>{
     try{ const d=JSON.parse(r.result);
-      if(Array.isArray(d.ops)){ DB=d; if(typeof DB.meta!=='number')DB.meta=2000;
-        DB.ops.forEach(o=>{if(!o.id)o.id=uid();}); await save(); render(); toast('Backup importado'); }
+      if(Array.isArray(d.ops)){ DB=d; normalize(); await save(); render(); toast('Backup importado'); }
       else throw 0;
     }catch(e){ alert('Arquivo inválido. Use um backup .json exportado por este app.'); }
   };
@@ -933,7 +1034,7 @@ document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{
   activeTab=b.dataset.tab;
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===b));
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
-  $('view-'+(activeTab==='rel'?'rel':activeTab==='ops'?'ops':'resumo')).classList.add('active');
+  $('view-'+activeTab).classList.add('active');
   render();
 });
 $('fab').onclick=()=>openForm(null);
@@ -945,14 +1046,18 @@ $('deleteBtn').onclick=deleteOp;
 // delegated clicks
 document.addEventListener('click',e=>{
   const op=e.target.closest('.op'); if(op){ openForm(op.dataset.id); return; }
-  const chip=e.target.closest('.chip'); if(chip){ opFilter=chip.dataset.f;
-    document.querySelectorAll('.chip').forEach(x=>x.classList.toggle('on', x===chip));
-    renderOpList(); return; }
+  const cx=e.target.closest('#caixaCard'); if(cx){ editCaixa(); return; }
+  const yr=e.target.closest('[data-yr]'); if(yr){ resumoYear=yr.dataset.yr; render(); return; }
+  const ayr=e.target.closest('[data-ayr]'); if(ayr){ ativoYear=ayr.dataset.ayr; renderAtivos(); return; }
+  const chip=e.target.closest('.chip'); if(chip){ opFilter=chip.dataset.f; renderOps(); return; }
   const rv=e.target.closest('[data-rv]'); if(rv){ relView=rv.dataset.rv; renderRel(); return; }
   const sm=e.target.closest('[data-sm]'); if(sm){ seasonMetric=sm.dataset.sm; renderRel(); return; }
 });
 document.addEventListener('input',e=>{
-  if(e.target.id==='opSearch'){ opSearch=e.target.value; renderOpList(); }
+  if(e.target.id==='opSearch'){ opSearch=e.target.value; const ae=document.activeElement;
+    // re-render list but keep focus
+    renderOps(); const s=document.getElementById('opSearch'); if(s){ s.focus(); s.setSelectionRange(s.value.length,s.value.length);} }
+  if(e.target.id==='ativoSearch'){ ativoSearch=e.target.value; const sc=document.scrollingElement?document.scrollingElement.scrollTop:0; renderAtivos(); const s=document.getElementById('ativoSearch'); if(s){ s.focus(); s.setSelectionRange(s.value.length,s.value.length);} }
   if(e.target.id==='relYearSel'){ window._relYear=e.target.value; renderRel(); }
 });
 
@@ -963,9 +1068,26 @@ $('mExport').onclick=()=>{exportJSON();$('menu').classList.remove('show');};
 $('mCsv').onclick=()=>{exportCSV();$('menu').classList.remove('show');};
 $('mImport').onclick=()=>{$('fileInput').click();$('menu').classList.remove('show');};
 $('fileInput').onchange=e=>{ if(e.target.files[0]) importJSON(e.target.files[0]); e.target.value=''; };
-$('mMeta').onclick=async()=>{ $('menu').classList.remove('show');
-  const cur=DB.meta||0; const v=prompt('Meta de lucro realizado (R$):', cur);
-  if(v!=null){ const n=parseNum(v); if(n!=null){ DB.meta=n; await save(); render(); toast('Meta atualizada'); } } };
+async function editMeta(){
+  const y=resumoYear;
+  if(y==='all'){
+    const cur=+DB.meta||0;
+    const v=prompt('Meta de lucro ANUAL padrão (R$).\nVale para cada ano que você ainda não definiu individualmente.\nPara a meta de um ano específico, selecione o ano no topo do Resumo e edite de novo.', cur);
+    if(v!=null){ const n=parseNum(v); if(n!=null){ DB.meta=n; await save(); render(); toast('Meta padrão atualizada'); } }
+  }else{
+    const cur=metaFor(y);
+    const v=prompt('Meta de lucro para '+y+' (R$):', cur);
+    if(v!=null){ const n=parseNum(v); if(n!=null){ if(!DB.metas)DB.metas={}; DB.metas[y]=n; await save(); render(); toast('Meta de '+y+' atualizada'); } }
+  }
+}
+$('mMeta').onclick=()=>{ $('menu').classList.remove('show'); editMeta(); };
+$('metaWrap').onclick=editMeta;
+async function editCaixa(){
+  const cur=+DB.caixa||0;
+  const v=prompt('Capital parado agora (R$)\nDinheiro em conta/corretora que ainda não está investido.', cur);
+  if(v!=null){ const n=parseNum(v); if(n!=null){ DB.caixa=Math.max(0,n); await save(); render(); toast('Capital parado atualizado'); } }
+}
+$('mCaixa').onclick=()=>{ $('menu').classList.remove('show'); editCaixa(); };
 $('mReset').onclick=async()=>{ $('menu').classList.remove('show');
   if(confirm('Restaurar os dados de exemplo da sua planilha? Isso substitui o que estiver no app.')){ seedNow(); await save(); render(); toast('Dados de exemplo restaurados'); } };
 
@@ -986,7 +1108,6 @@ document.addEventListener('pointermove',e=>{
   if(c) showTip(c); else hideTip();
 });
 document.addEventListener('pointerdown',e=>{
-  if(e.target.closest('input,select,textarea,.sheet')) { hideTip(); return; }
   const c=e.target.closest('[data-tip]');
   if(c){ showTip(c); clearTimeout(tipHideT); tipHideT=setTimeout(hideTip,2000); }
   else hideTip();
