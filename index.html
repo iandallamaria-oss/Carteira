@@ -689,6 +689,16 @@ function summaryFor(year){
   const hit=cl.length?wins/cl.length:0;
   return {realizado,amSimple,amWeighted,hit,wins,nClosed:cl.length};
 }
+// Retorno sobre o capital efetivamente aplicado. Cada operação pesa por (valor × dias aplicado),
+// então aportes feitos em datas diferentes não distorcem o resultado. Só entram operações encerradas
+// (as abertas não têm resultado). Não considera o dinheiro parado entre uma operação e outra.
+function capitalReturn(year){
+  let cl=closedOps();
+  if(year && year!=='all') cl=cl.filter(o=>o.dataVenda.slice(0,4)===year);
+  let res=0, vi=0, capDias=0;
+  cl.forEach(o=>{ const c=calc(o); res+=c.resultadoRS; vi+=c.vi; capDias+=c.vi*c.dias; });
+  return { total: vi? res/vi : 0, aa: capDias? res/(capDias/365) : 0 };
+}
 function openSummary(){ const op=openOps(); return {capOpen:op.reduce((s,o)=>s+(+o.valorInvestido||0),0), nOpen:op.length}; }
 function resumoYears(){
   const s=new Set();
@@ -768,6 +778,7 @@ function renderMeta(){
 function renderResumo(){
   const y=resumoYear;
   const s=summaryFor(y);
+  const cr=capitalReturn(y);
   const os=openSummary();
   const v=document.getElementById('view-resumo');
   const caixa=+DB.caixa||0;
@@ -797,14 +808,14 @@ function renderResumo(){
         <div class="sub">pelo valor investido</div>
       </div>
       <div class="card">
-        <div class="k">Retorno médio a.a.</div>
-        <div class="v num ${s.amSimple>=0?'pos':'neg'}">${pct(s.amSimple*12)}</div>
-        <div class="sub">média simples · a.m. × 12</div>
+        <div class="k">Retorno sobre o capital investido</div>
+        <div class="v num ${cr.total>=0?'pos':'neg'}">${pct(cr.total)}</div>
+        <div class="sub">lucro ÷ valor aplicado nas encerradas</div>
       </div>
       <div class="card">
-        <div class="k">Retorno a.a. ponderado</div>
-        <div class="v num ${s.amWeighted>=0?'pos':'neg'}">${pct(s.amWeighted*12)}</div>
-        <div class="sub">pelo valor investido · a.m. × 12</div>
+        <div class="k">Retorno a.a. sobre o capital</div>
+        <div class="v num ${cr.aa>=0?'pos':'neg'}">${pct(cr.aa)}</div>
+        <div class="sub">ponderado por valor e tempo aplicado</div>
       </div>
     </div>
 
