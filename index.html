@@ -796,6 +796,16 @@ function renderResumo(){
         <div class="v num ${s.amWeighted>=0?'pos':'neg'}">${pct(s.amWeighted)}</div>
         <div class="sub">pelo valor investido</div>
       </div>
+      <div class="card">
+        <div class="k">Retorno médio a.a.</div>
+        <div class="v num ${s.amSimple>=0?'pos':'neg'}">${pct(s.amSimple*12)}</div>
+        <div class="sub">média simples · a.m. × 12</div>
+      </div>
+      <div class="card">
+        <div class="k">Retorno a.a. ponderado</div>
+        <div class="v num ${s.amWeighted>=0?'pos':'neg'}">${pct(s.amWeighted*12)}</div>
+        <div class="sub">pelo valor investido · a.m. × 12</div>
+      </div>
     </div>
 
     </div><div>
