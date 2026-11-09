@@ -176,6 +176,30 @@ nav.tabs button.on{color:var(--ink)}
 nav.tabs button.on svg{stroke:var(--gold)}
 nav.tabs svg{width:21px;height:21px;stroke:var(--muted2);fill:none;stroke-width:1.7}
 
+nav.tabs button{position:relative;padding:4px 10px}
+nav.tabs .badge{position:absolute;top:0;right:4px;min-width:16px;height:16px;border-radius:99px;background:var(--neg);color:#fff;
+  font-size:10px;font-weight:700;display:none;place-items:center;padding:0 4px}
+nav.tabs .badge.show{display:grid}
+
+/* mercado */
+.mk-alert{background:var(--negDim);border:1px solid var(--neg);border-radius:var(--r-sm);padding:11px 13px;margin-bottom:9px;font-size:13.5px}
+.mk-alert b{color:var(--neg)} .mk-alert small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+.mk-idx{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.mk-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 14px;background:var(--surface);
+  border:1px solid var(--line);border-radius:var(--r-sm);margin-bottom:7px}
+.mk-row .t{font-weight:600} .mk-row .p{font-size:11.5px;color:var(--muted2)}
+.mk-row .r{text-align:right;font-size:14px}
+.mk-news{display:block;padding:11px 14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-sm);
+  margin-bottom:7px;color:var(--ink);text-decoration:none;font-size:13.5px;line-height:1.35}
+.mk-news small{display:block;color:var(--muted2);font-size:11px;margin-top:4px}
+.mk-rep li{margin-bottom:6px} .mk-rep ul{margin:0;padding-left:18px;font-size:13.5px}
+.mk-cfg{display:flex;gap:8px;margin-bottom:10px}
+.mk-cfg input{flex:1;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:14px}
+.mk-cfg button{padding:0 16px;border-radius:12px;background:var(--surface2);border:1px solid var(--line2);font-weight:600;font-size:13px}
+.mk-tag{display:inline-flex;align-items:center;gap:6px;padding:5px 6px 5px 11px;margin:0 6px 6px 0;border-radius:99px;
+  background:var(--surface);border:1px solid var(--line);font-size:12.5px}
+.mk-tag button{color:var(--muted);font-size:15px;line-height:1;padding:0 4px}
+
 /* FAB */
 .fab{position:fixed;z-index:45;right:calc(50% - 260px + 18px);bottom:calc(env(safe-area-inset-bottom) + 74px);
   width:56px;height:56px;border-radius:18px;background:linear-gradient(135deg,var(--gold),#bf962f);
@@ -265,6 +289,7 @@ nav.tabs svg{width:21px;height:21px;stroke:var(--muted2);fill:none;stroke-width:
     <section class="view" id="view-ops"></section>
     <section class="view" id="view-ativos"></section>
     <section class="view" id="view-rel"></section>
+    <section class="view" id="view-mercado"></section>
   </main>
 
   <button class="fab" id="fab" aria-label="Nova operação">+</button>
@@ -285,6 +310,11 @@ nav.tabs svg{width:21px;height:21px;stroke:var(--muted2);fill:none;stroke-width:
     <button class="tab" data-tab="rel">
       <svg viewBox="0 0 24 24"><path d="M4 19V9m5 10V5m5 14v-7m5 7V4"/></svg>
       Relatórios
+    </button>
+    <button class="tab" data-tab="mercado">
+      <svg viewBox="0 0 24 24"><path d="M3 17l5-6 4 3 8-9"/><path d="M15 5h5v5"/></svg>
+      Mercado
+      <span class="badge" id="mkBadge"></span>
     </button>
   </nav>
 </div>
@@ -928,8 +958,99 @@ function render(){
   if(activeTab==='resumo') renderResumo();
   else if(activeTab==='ops') renderOps();
   else if(activeTab==='ativos') renderAtivos();
+  else if(activeTab==='mercado') renderMercado();
   else renderRel();
 }
+
+/* ---------------- mercado financeiro ---------------- */
+// Config (tickers + limite) é editada aqui; cotações/notícias/alertas/relatório
+// são gravados pelo robô (supabase/functions/mercado-monitor) na tabela `mercado`.
+let MK={config:{tickers:[],limite:3.5},snap:null,loaded:false,loading:false,err:''};
+const escH=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const mkPct=n=>(n>=0?'+':'')+n.toFixed(2).replace('.',',')+'%';
+const mkCls=n=>n>0?'pos':n<0?'neg':'';
+const mkOn=()=>cloudMode&&sb&&session;
+function mkSeenGet(){ try{ return JSON.parse(localStorage.getItem('mk-seen')||'[]'); }catch(e){ return []; } }
+function mkTodayAlerts(){
+  const today=new Date().toLocaleDateString('sv-SE',{timeZone:'America/Sao_Paulo'});
+  return ((MK.snap&&MK.snap.alerts)||[]).filter(a=>a.date===today);
+}
+function mkBadge(){
+  const seen=mkSeenGet(), n=mkTodayAlerts().filter(a=>!seen.includes(a.id)).length, b=$('mkBadge');
+  if(!b) return; b.textContent=n; b.classList.toggle('show',n>0&&activeTab!=='mercado');
+}
+async function mkLoad(){
+  if(!mkOn()){ MK.loaded=true; return; }
+  if(MK.loading) return; MK.loading=true;
+  try{
+    const {data,error}=await sb.from('mercado').select('config,snapshot').eq('user_id',session.user.id).maybeSingle();
+    if(error) throw error;
+    if(data){ MK.config=Object.assign({tickers:[],limite:3.5},data.config||{}); MK.snap=data.snapshot||null; }
+    MK.err='';
+  }catch(e){ MK.err='Não consegui ler os dados de mercado ('+(e.message||e)+'). Confira se a migração SQL foi executada no Supabase.'; }
+  MK.loading=false; MK.loaded=true;
+  if(activeTab==='mercado') renderMercado(); mkBadge();
+}
+async function mkSaveConfig(){
+  if(!mkOn()){ toast('Entre na nuvem para salvar'); return; }
+  const {error}=await sb.from('mercado').upsert({user_id:session.user.id,config:MK.config});
+  if(error){ toast('Erro ao salvar lista'); console.warn(error); } else toast('Lista salva — vale na próxima checagem');
+}
+function renderMercado(){
+  const v=$('view-mercado');
+  if(!MK.loaded){ v.innerHTML='<div class="note">Carregando mercado…</div>'; mkLoad(); return; }
+  if(!mkOn()){
+    v.innerHTML='<div class="section-h">Mercado Financeiro</div><div class="note">Esta aba precisa da nuvem (Supabase) conectada e com login feito, porque o robô de monitoramento grava os dados lá. Abra o menu e conecte.</div>'; return;
+  }
+  const s=MK.snap, cfg=MK.config;
+  let h='';
+  const alerts=mkTodayAlerts();
+  if(alerts.length){
+    h+=alerts.map(a=>`<div class="mk-alert"><b>⚠ ${escH(a.msg)}</b><small>${escH(a.time)} · cotação R$ ${a.price.toFixed(2).replace('.',',')}</small></div>`).join('');
+  }
+  if(MK.err) h+=`<div class="note" style="border-color:var(--neg)">${escH(MK.err)}</div>`;
+  if(s&&s.updatedAt){
+    h+=`<div class="section-h">Índices <span style="float:right;text-transform:none;letter-spacing:0">atualizado ${new Date(s.updatedAt).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</span></div>
+      <div class="mk-idx">${(s.indices||[]).map(i=>`<div class="card"><div class="k">${escH(i.label)}</div><div class="v num ${mkCls(i.changePct)}">${mkPct(i.changePct)}</div><div class="sub num">${i.price.toLocaleString('pt-BR',{maximumFractionDigits:2})}</div></div>`).join('')}</div>`;
+    const qs=[...(s.quotes||[])].sort((a,b)=>a.changePct-b.changePct);
+    h+=`<div class="section-h">Minhas ações</div>`+(qs.length?qs.map(q=>`<div class="mk-row"><div><div class="t">${escH(q.ticker)}</div><div class="p num">R$ ${q.price.toFixed(2).replace('.',',')}</div></div><div class="r num ${mkCls(q.changePct)}">${mkPct(q.changePct)}</div></div>`).join(''):'<div class="note">Nenhuma cotação ainda. Adicione tickers abaixo.</div>');
+    const rep=(s.reports||[])[0];
+    if(rep){
+      h+=`<div class="section-h">Relatório do dia — ${escH(rep.date.split('-').reverse().join('/'))}</div>
+        <div class="card mk-rep"><ul>${rep.summary.map(l=>`<li>${escH(l)}</li>`).join('')}</ul>
+        ${(rep.headlines||[]).length?`<div class="sub" style="margin:12px 0 6px">Principais manchetes</div><ul>${rep.headlines.map(n=>`<li><a href="${escH(n.link)}" target="_blank" rel="noopener noreferrer" style="color:var(--ink)">${escH(n.title)}</a></li>`).join('')}</ul>`:''}</div>`;
+    } else h+=`<div class="section-h">Relatório do dia</div><div class="note">O primeiro relatório sai hoje às 18h30, depois do fechamento.</div>`;
+    const nw=s.news||[];
+    h+=`<div class="section-h">Notícias</div>`+(nw.length?nw.slice(0,25).map(n=>`<a class="mk-news" href="${escH(n.link)}" target="_blank" rel="noopener noreferrer">${escH(n.title)}<small>${n.ticker?escH(n.ticker)+' · ':''}${escH(n.source)}${n.published?' · '+new Date(n.published).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):''}</small></a>`).join(''):'<div class="note">Sem notícias por enquanto.</div>');
+  } else if(!MK.err){
+    h+=`<div class="note">Ainda não há dados. Adicione suas ações abaixo e faça o deploy do robô (veja o README). Depois da primeira execução, tudo aparece aqui.</div>`;
+  }
+  h+=`<div class="section-h">Configuração</div>
+    <div class="mk-cfg"><input id="mkTicker" placeholder="Ticker (ex.: PETR4, VALE3, AAPL)" autocapitalize="characters" autocomplete="off"><button id="mkAdd">Adicionar</button></div>
+    <div>${(cfg.tickers||[]).map(t=>`<span class="mk-tag">${escH(t)}<button data-mkdel="${escH(t)}" aria-label="Remover ${escH(t)}">×</button></span>`).join('')||'<span class="p" style="color:var(--muted2);font-size:12.5px">Nenhuma ação na lista.</span>'}</div>
+    <div class="mk-cfg" style="margin-top:8px"><input id="mkLimite" inputmode="decimal" value="${String(cfg.limite).replace('.',',')}" aria-label="Limite de queda em %"><button id="mkSaveLim">Salvar limite %</button></div>
+    <div class="note">Você é avisado aqui quando uma ação cair mais que o limite no dia. O robô checa a cada 15 min entre 10h e 18h nos dias úteis.</div>`;
+  v.innerHTML=h;
+  // visto: zera o selo da aba
+  try{ localStorage.setItem('mk-seen',JSON.stringify(alerts.map(a=>a.id))); }catch(e){}
+  mkBadge();
+}
+document.addEventListener('click',e=>{
+  if(e.target.id==='mkAdd'){
+    const el=$('mkTicker'), t=(el.value||'').trim().toUpperCase().replace(/[^A-Z0-9.\-^=]/g,'');
+    if(!t) return;
+    if(!MK.config.tickers.includes(t)) MK.config.tickers.push(t);
+    mkSaveConfig(); renderMercado();
+  }
+  const d=e.target.closest('[data-mkdel]');
+  if(d){ MK.config.tickers=MK.config.tickers.filter(x=>x!==d.dataset.mkdel); mkSaveConfig(); renderMercado(); }
+  if(e.target.id==='mkSaveLim'){
+    const n=parseFloat(($('mkLimite').value||'').replace(',','.'));
+    if(!(n>0&&n<100)){ toast('Limite inválido'); return; }
+    MK.config.limite=n; mkSaveConfig(); renderMercado();
+  }
+});
+setInterval(()=>{ if(mkOn()&&document.visibilityState==='visible') mkLoad(); },120000);
 
 /* ---------------- form ---------------- */
 const $=id=>document.getElementById(id);
@@ -1035,6 +1156,7 @@ document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===b));
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   $('view-'+activeTab).classList.add('active');
+  $('fab').style.display = activeTab==='mercado' ? 'none' : '';
   render();
 });
 $('fab').onclick=()=>openForm(null);
@@ -1194,7 +1316,7 @@ document.addEventListener('visibilitychange', async()=>{
 });
 
 /* ---------------- boot ---------------- */
-(async()=>{ await load(); render(); renderAuthUI(); })();
+(async()=>{ await load(); render(); renderAuthUI(); mkLoad(); })();
 </script>
 </body>
 </html>
