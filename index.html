@@ -1157,6 +1157,25 @@ const AG_EVENTS=(()=>{
   // ---- Agro ----
   ['2026-11-10','2026-12-10','2027-01-12'].forEach(d=>add('AGRO',d,'12:00','ET','WASDE (USDA)','Oferta e demanda mundial de soja, milho e trigo'));
   [['2026-11-13','2º'],['2026-12-15','3º'],['2027-01-14','4º']].forEach(([d,n])=>add('AGRO',d,null,'BRT',`Conab — ${n} levantamento da safra 2026/27`,'Estimativa de área e produção de grãos no Brasil'));
+  // ---- ampliação (pesquisa de 09/11/2026). conf:false = data de fonte única ou calculada por regra ----
+  // Brasil
+  add('BR','2026-11-27','08:00','BRT','IGP-M de novembro','Índice geral de preços (reajuste de aluguéis e contratos) — FGV',false);
+  add('BR','2026-12-29','08:00','BRT','IGP-M de dezembro','Índice geral de preços (reajuste de aluguéis e contratos) — FGV',false);
+  add('BR','2026-12-02','09:00','BRT','PIB do Brasil (3º trimestre)','Contas nacionais trimestrais — IBGE',false);
+  add('BR','2026-11-20',null,'BRT','Feriado: Consciência Negra','Bolsa brasileira fechada');
+  add('BR','2026-12-25',null,'BRT','Natal: mercados fechados','Brasil e EUA sem pregão');
+  // EUA
+  add('EUA','2026-12-01','10:00','ET','ISM Industrial (PMI)','Atividade da indústria dos EUA — ISM',false);
+  add('EUA','2026-12-03','10:00','ET','ISM de Serviços (PMI)','Atividade do setor de serviços dos EUA — ISM',false);
+  add('EUA','2027-01-04','10:00','ET','ISM Industrial (PMI)','Atividade da indústria dos EUA — ISM',false);
+  add('EUA','2026-11-26',null,'BRT','Feriado nos EUA: Thanksgiving','Bolsas e CME (soja, milho) fechadas');
+  // Mundo: BCE (decisão às 14:15 de Frankfurt)
+  ['2026-12-17','2027-02-04','2027-03-18','2027-04-29','2027-06-10','2027-07-22','2027-09-09','2027-10-28','2027-12-16']
+    .forEach(d=>add('MUNDO',d,'14:15','CET','Decisão do BCE (Banco Central Europeu)','Decisão de juros da zona do euro — afeta o euro e o dólar'));
+  // Agro
+  add('AGRO','2026-12-04',null,'BRT','Índice de preços de alimentos da FAO','Preços mundiais de cereais, óleos, carnes, açúcar e laticínios — FAO');
+  ['2026-11-12','2026-12-10','2027-01-14'].forEach(d=>add('AGRO',d,null,'BRT','El Niño / La Niña (NOAA)','Atualização mensal da previsão do ENSO, que influencia a chuva nas regiões produtoras',false));
+  add('AGRO','2027-01-12','12:00','ET','Estoques de grãos e safra final dos EUA (USDA)','Grain Stocks e Crop Production anual, junto com o WASDE',false);
   return ev;
 })();
 function agWhen(e){
@@ -1164,9 +1183,10 @@ function agWhen(e){
   if(!e.time) e={...e,time:'12:00',tz:'BRT'};
   const [h,m]=e.time.split(':').map(Number), [y,mo,d]=e.date.split('-').map(Number);
   if(e.tz==='BRT') return new Date(Date.UTC(y,mo-1,d,h+3,m));
-  for(const off of [5,4]){
+  const Z=e.tz==='CET'?{zone:'Europe/Berlin',offs:[-1,-2]}:{zone:'America/New_York',offs:[5,4]};
+  for(const off of Z.offs){
     const t=new Date(Date.UTC(y,mo-1,d,h+off,m));
-    const hh=+new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',hour:'2-digit',hour12:false}).format(t)%24;
+    const hh=+new Intl.DateTimeFormat('en-US',{timeZone:Z.zone,hour:'2-digit',hour12:false}).format(t)%24;
     if(hh===h) return t;
   }
   return new Date(Date.UTC(y,mo-1,d,h+5,m));
@@ -1199,7 +1219,7 @@ function renderAgro(){
   const v=$('view-agro');
   if(!AG.loaded){ agLoad(); }
   const now=Date.now();
-  const up=AG_EVENTS.map(e=>({...e,t:agWhen(e)})).filter(e=>e.t.getTime()>now-36e5&&(AG.cat==='TODOS'||e.cat===AG.cat)).sort((a,b)=>a.t-b.t).slice(0,12);
+  const up=AG_EVENTS.map(e=>({...e,t:agWhen(e)})).filter(e=>e.t.getTime()>now-36e5&&(AG.cat==='TODOS'||e.cat===AG.cat)).sort((a,b)=>a.t-b.t).slice(0,24);
   let h='';
   const s=AG.snap;
   if(AG.err) h+=`<div class="note" style="border-color:var(--neg)">${escH(AG.err)}</div>`;
@@ -1211,7 +1231,7 @@ function renderAgro(){
     :`<div class="note">Ainda sem resumo. Ele aparece aqui quando o coletor da StoneX e da Safras estiver ativo.</div>`;
   // agenda macro (coluna 1) — no computador: agenda + câmbio à esquerda, notícias do agro à direita
   h+='<div class="dcols tri ag"><div class="c1">';
-  h+=`<div class="section-h">Agenda macro</div><div style="margin-bottom:8px">${[['TODOS','Todos'],['EUA','EUA'],['BR','Brasil'],['AGRO','Agro']].map(([k,l])=>`<span class="mk-tag" style="padding:5px 12px;cursor:pointer;${AG.cat===k?'border-color:var(--gold);color:var(--gold)':''}" data-agcat="${k}">${l}</span>`).join('')}</div>`;
+  h+=`<div class="section-h">Agenda macro</div><div style="margin-bottom:8px">${[['TODOS','Todos'],['EUA','EUA'],['BR','Brasil'],['AGRO','Agro'],['MUNDO','Mundo']].map(([k,l])=>`<span class="mk-tag" style="padding:5px 12px;cursor:pointer;${AG.cat===k?'border-color:var(--gold);color:var(--gold)':''}" data-agcat="${k}">${l}</span>`).join('')}</div>`;
   h+=up.length?up.map((e,i)=>{
     const d=new Date(e.t.getTime()-3*36e5); // exibe em Brasília
     const day=String(d.getUTCDate()).padStart(2,'0');
@@ -1221,6 +1241,12 @@ function renderAgro(){
       <div><div class="t">${escH(e.title)}</div><div class="p">${escH(e.sub)}${e.time?' · '+hm+' (Brasília)':''}${e.conf?'':' · <i>data a confirmar</i>'}</div></div>
       <div class="in">${agIn(e.t)}</div></div>`;
   }).join(''):'<div class="note">Sem eventos futuros na lista. Atualize a agenda.</div>';
+  // eventos que se repetem toda semana (não entram na lista acima para não poluí-la)
+  h+=`<div class="section-h">Toda semana</div><div class="card" style="font-size:13px;line-height:1.7">
+    <div><b>Segunda</b> · 8h25 Boletim Focus (Banco Central, projeções de mercado) · Crop Progress (USDA, andamento da safra americana, até o fim de novembro)</div>
+    <div><b>Quinta</b> · 8h30 ET: vendas semanais de exportação (USDA) e pedidos de seguro-desemprego (EUA)</div>
+    <div><b>Sexta</b> · 15h30 ET: posição dos fundos em soja, milho e dólar (CFTC)</div>
+    <div class="sub">Os horários em ET mudam uma hora para Brasília conforme o horário de verão dos EUA.</div></div>`;
   // notícias — AGRO e CÂMBIO separadas (coletadas pela função agro-news)
   const nw=(s&&s.news)||{};
   const fmtD=p=>p?new Date(p).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
