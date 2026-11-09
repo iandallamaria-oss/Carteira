@@ -200,6 +200,15 @@ nav.tabs .badge.show{display:grid}
   background:var(--surface);border:1px solid var(--line);font-size:12.5px}
 .mk-tag button{color:var(--muted);font-size:15px;line-height:1;padding:0 4px}
 
+/* agro */
+.ag-ev{display:flex;gap:12px;align-items:center;padding:11px 14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-sm);margin-bottom:7px}
+.ag-ev .d{min-width:46px;text-align:center;line-height:1.1}
+.ag-ev .d b{display:block;font-size:19px} .ag-ev .d span{font-size:10.5px;color:var(--muted2);text-transform:uppercase;letter-spacing:.06em}
+.ag-ev .t{font-weight:600;font-size:14px} .ag-ev .p{font-size:11.5px;color:var(--muted2)}
+.ag-ev .in{margin-left:auto;font-size:11.5px;color:var(--muted);white-space:nowrap}
+.ag-ev.next{border-color:var(--gold)}
+.ag-src{display:inline-block;font-size:10.5px;padding:2px 8px;border-radius:99px;background:var(--surface2);border:1px solid var(--line2);color:var(--muted);margin-right:6px}
+
 /* FAB */
 .fab{position:fixed;z-index:45;right:calc(50% - 260px + 18px);bottom:calc(env(safe-area-inset-bottom) + 74px);
   width:56px;height:56px;border-radius:18px;background:linear-gradient(135deg,var(--gold),#bf962f);
@@ -290,6 +299,7 @@ nav.tabs .badge.show{display:grid}
     <section class="view" id="view-ativos"></section>
     <section class="view" id="view-rel"></section>
     <section class="view" id="view-mercado"></section>
+    <section class="view" id="view-agro"></section>
   </main>
 
   <button class="fab" id="fab" aria-label="Nova operação">+</button>
@@ -315,6 +325,10 @@ nav.tabs .badge.show{display:grid}
       <svg viewBox="0 0 24 24"><path d="M3 17l5-6 4 3 8-9"/><path d="M15 5h5v5"/></svg>
       Mercado
       <span class="badge" id="mkBadge"></span>
+    </button>
+    <button class="tab" data-tab="agro">
+      <svg viewBox="0 0 24 24"><path d="M12 21V9"/><path d="M12 9c0-3 2-5 5-5 0 3-2 5-5 5z"/><path d="M12 14c0-3-2-5-5-5 0 3 2 5 5 5z"/></svg>
+      Agro
     </button>
   </nav>
 </div>
@@ -959,6 +973,7 @@ function render(){
   else if(activeTab==='ops') renderOps();
   else if(activeTab==='ativos') renderAtivos();
   else if(activeTab==='mercado') renderMercado();
+  else if(activeTab==='agro') renderAgro();
   else renderRel();
 }
 
@@ -1051,6 +1066,129 @@ document.addEventListener('click',e=>{
   }
 });
 setInterval(()=>{ if(mkOn()&&document.visibilityState==='visible') mkLoad(); },120000);
+
+/* ---------------- agro ---------------- */
+// Agenda macro: datas conferidas nas fontes oficiais em 09/11/2026 (Fed, BLS, Banco Central).
+// Horários guardados em ET (EUA) / BRT e convertidos para o fuso de Brasília. Revisar a cada ano.
+// conf:false = data derivada/única fonte → aparece como "a confirmar". time:null = horário não confirmado.
+const AG_EVENTS=(()=>{
+  const ev=[];
+  const add=(cat,date,time,tz,title,sub,conf=true)=>ev.push({cat,date,time,tz,title,sub,conf});
+  // ---- EUA ----
+  ['2026-11-10','2026-12-10','2027-01-13','2027-02-11','2027-03-10','2027-04-13','2027-05-12','2027-06-10','2027-07-14','2027-08-11','2027-09-14','2027-10-14','2027-11-10','2027-12-10']
+    .forEach(d=>add('EUA',d,'08:30','ET','CPI (inflação EUA)','Índice de preços ao consumidor — BLS'));
+  ['2026-11-13','2026-12-15','2027-01-14','2027-02-12','2027-03-12','2027-04-14','2027-05-13','2027-06-11','2027-07-15','2027-08-10','2027-09-10','2027-10-15','2027-11-12','2027-12-15']
+    .forEach(d=>add('EUA',d,'08:30','ET','PPI (preços ao produtor EUA)','Inflação no atacado — BLS'));
+  ['2026-12-04','2027-01-08','2027-02-05','2027-03-05','2027-04-02','2027-05-07','2027-06-04','2027-07-02','2027-08-06','2027-09-03','2027-10-08','2027-11-05','2027-12-03']
+    .forEach(d=>add('EUA',d,'08:30','ET','Payroll (emprego EUA)','Nonfarm payrolls e taxa de desemprego — BLS'));
+  ['2026-12-16','2027-01-15','2027-02-17','2027-03-16','2027-04-16','2027-05-14','2027-06-16','2027-07-16','2027-08-16','2027-09-16','2027-10-15','2027-11-16','2027-12-15']
+    .forEach(d=>add('EUA',d,'08:30','ET','Vendas no varejo (EUA)','Advance Monthly Retail Trade — Census'));
+  ['2026-11-25','2026-12-23'].forEach(d=>add('EUA',d,'08:30','ET','PCE (inflação preferida do FED)','Renda e gastos pessoais / índice PCE — BEA'));
+  add('EUA','2026-11-25','08:30','ET','PIB dos EUA (3º tri, 2ª estimativa)','Revisão do PIB — BEA');
+  add('EUA','2026-12-23','08:30','ET','PIB dos EUA (3º tri, 3ª estimativa)','Estimativa final do trimestre — BEA');
+  [['2026-12-09',1],['2027-01-27',0],['2027-03-17',1],['2027-04-28',0],['2027-06-09',1],['2027-07-28',0],['2027-09-15',1],['2027-10-27',0],['2027-12-08',1]]
+    .forEach(([d,sep])=>add('EUA',d,'14:00','ET','Decisão do FED (FOMC)',sep?'Decisão de juros + projeções econômicas (SEP)':'Decisão de juros — dia 2 da reunião'));
+  add('EUA','2026-11-18','14:00','ET','Ata do FOMC','Ata da reunião de 27-28/10 (publicada 3 semanas depois)',false);
+  add('EUA','2026-12-30','14:00','ET','Ata do FOMC','Ata da reunião de 8-9/12 (publicada 3 semanas depois)',false);
+  // ---- Brasil ----
+  add('BR','2026-11-10','08:30','BRT','Ata do COPOM','Ata da reunião de 3 e 4/11');
+  add('BR','2026-11-12','09:00','BRT','IPCA de outubro','Inflação oficial — IBGE',false);
+  add('BR','2026-12-09','18:30','BRT','Decisão do COPOM','Decisão da Selic — reunião de 8 e 9/12');
+  add('BR','2026-12-11','09:00','BRT','PNAD Contínua (desemprego)','Taxa de desocupação mensal — IBGE');
+  add('BR','2026-12-15','08:30','BRT','Ata do COPOM','Ata da reunião de 8 e 9/12 (6 dias após a decisão)',false);
+  add('BR','2026-12-23','09:00','BRT','IPCA-15 de dezembro','Prévia da inflação — IBGE',false);
+  add('BR','2027-01-12','09:00','BRT','PNAD Contínua (desemprego)','Taxa de desocupação mensal — IBGE');
+  // ---- Agro ----
+  ['2026-11-10','2026-12-10','2027-01-12'].forEach(d=>add('AGRO',d,'12:00','ET','WASDE (USDA)','Oferta e demanda mundial de soja, milho e trigo'));
+  [['2026-11-13','2º'],['2026-12-15','3º'],['2027-01-14','4º']].forEach(([d,n])=>add('AGRO',d,null,'BRT',`Conab — ${n} levantamento da safra 2026/27`,'Estimativa de área e produção de grãos no Brasil'));
+  return ev;
+})();
+function agWhen(e){
+  // devolve Date (instante) do evento; ET -> tenta offset -5 (EST) e -4 (EDT)
+  if(!e.time) e={...e,time:'12:00',tz:'BRT'};
+  const [h,m]=e.time.split(':').map(Number), [y,mo,d]=e.date.split('-').map(Number);
+  if(e.tz==='BRT') return new Date(Date.UTC(y,mo-1,d,h+3,m));
+  for(const off of [5,4]){
+    const t=new Date(Date.UTC(y,mo-1,d,h+off,m));
+    const hh=+new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',hour:'2-digit',hour12:false}).format(t)%24;
+    if(hh===h) return t;
+  }
+  return new Date(Date.UTC(y,mo-1,d,h+5,m));
+}
+function agIn(t){
+  const ms=t-Date.now(); if(ms<0) return 'hoje';
+  const dd=Math.floor(ms/864e5), hh=Math.floor(ms%864e5/36e5);
+  return dd>0?`em ${dd} dia${dd>1?'s':''}`:`em ${hh}h`;
+}
+let AG={snap:null,loaded:false,loading:false,err:'',cat:'TODOS',topic:'Todos'};
+document.addEventListener('click',e=>{
+  const c=e.target.closest('[data-agcat]');
+  if(c){ AG.cat=c.dataset.agcat; renderAgro(); }
+  const t=e.target.closest('[data-agtopic]');
+  if(t){ AG.topic=t.dataset.agtopic; renderAgro(); }
+});
+setInterval(()=>{ if(mkOn()&&activeTab==='agro'&&document.visibilityState==='visible') agLoad(); },120000);
+async function agLoad(){
+  if(!mkOn()){ AG.loaded=true; return; }
+  if(AG.loading) return; AG.loading=true;
+  try{
+    const {data,error}=await sb.from('agro').select('snapshot').eq('user_id',session.user.id).maybeSingle();
+    if(error) throw error;
+    AG.snap=data?data.snapshot:null; AG.err='';
+  }catch(e){ AG.err='Não consegui ler os dados do Agro ('+(e.message||e)+').'; }
+  AG.loading=false; AG.loaded=true;
+  if(activeTab==='agro') renderAgro();
+}
+function renderAgro(){
+  const v=$('view-agro');
+  if(!AG.loaded){ agLoad(); }
+  const now=Date.now();
+  const up=AG_EVENTS.map(e=>({...e,t:agWhen(e)})).filter(e=>e.t.getTime()>now-36e5&&(AG.cat==='TODOS'||e.cat===AG.cat)).sort((a,b)=>a.t-b.t).slice(0,12);
+  let h='';
+  const s=AG.snap;
+  if(AG.err) h+=`<div class="note" style="border-color:var(--neg)">${escH(AG.err)}</div>`;
+  // resumo do dia (vem do coletor + IA)
+  const sum=s&&s.summary;
+  h+=`<div class="section-h">Resumo do dia${sum&&sum.date?' — '+escH(sum.date.split('-').reverse().join('/')):''}</div>`;
+  h+=sum&&sum.bullets&&sum.bullets.length
+    ?`<div class="card mk-rep"><ul>${sum.bullets.map(l=>`<li>${escH(l)}</li>`).join('')}</ul></div>`
+    :`<div class="note">Ainda sem resumo. Ele aparece aqui quando o coletor da StoneX e da Safras estiver ativo.</div>`;
+  // agenda macro
+  h+=`<div class="section-h">Agenda macro</div><div style="margin-bottom:8px">${[['TODOS','Todos'],['EUA','EUA'],['BR','Brasil'],['AGRO','Agro']].map(([k,l])=>`<span class="mk-tag" style="padding:5px 12px;cursor:pointer;${AG.cat===k?'border-color:var(--gold);color:var(--gold)':''}" data-agcat="${k}">${l}</span>`).join('')}</div>`;
+  h+=up.length?up.map((e,i)=>{
+    const d=new Date(e.t.getTime()-3*36e5); // exibe em Brasília
+    const day=String(d.getUTCDate()).padStart(2,'0');
+    const mon=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'][d.getUTCMonth()];
+    const hm=String(d.getUTCHours()).padStart(2,'0')+':'+String(d.getUTCMinutes()).padStart(2,'0');
+    return `<div class="ag-ev${i===0?' next':''}"><div class="d"><b>${day}</b><span>${mon}</span></div>
+      <div><div class="t">${escH(e.title)}</div><div class="p">${escH(e.sub)}${e.time?' · '+hm+' (Brasília)':''}${e.conf?'':' · <i>data a confirmar</i>'}</div></div>
+      <div class="in">${agIn(e.t)}</div></div>`;
+  }).join(''):'<div class="note">Sem eventos futuros na lista. Atualize a agenda.</div>';
+  // notícias — AGRO e CÂMBIO separadas (coletadas pela função agro-news)
+  const nw=(s&&s.news)||{};
+  const fmtD=p=>p?new Date(p).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
+  const card=n=>`<a class="mk-news" href="${escH(n.link||n.url||'#')}" target="_blank" rel="noopener noreferrer">${escH(n.title)}<small><span class="ag-src">${escH(n.source||'')}</span>${n.topic&&n.topic!=='Câmbio'?escH(n.topic)+' · ':''}${fmtD(n.published)}</small></a>`;
+  // Agro (com filtro por assunto)
+  const ag=nw.agro||[];
+  const topics=['Todos',...[...new Set(ag.map(n=>n.topic))].sort((a,b)=>ag.filter(n=>n.topic===b).length-ag.filter(n=>n.topic===a).length)];
+  const agSel=topics.includes(AG.topic)?AG.topic:'Todos';
+  h+=`<div class="section-h">Notícias do Agro</div>`;
+  if(ag.length){
+    h+=`<div style="margin-bottom:8px">${topics.map(t=>`<span class="mk-tag" style="padding:5px 12px;cursor:pointer;${agSel===t?'border-color:var(--gold);color:var(--gold)':''}" data-agtopic="${escH(t)}">${escH(t)}</span>`).join('')}</div>`;
+    h+=ag.filter(n=>agSel==='Todos'||n.topic===agSel).slice(0,30).map(card).join('');
+  } else h+='<div class="note">Sem notícias de agro ainda. Elas aparecem aqui depois da primeira coleta do robô.</div>';
+  // Câmbio
+  const cb=nw.cambio||[];
+  h+=`<div class="section-h">Notícias de Câmbio</div>`;
+  h+=cb.length?cb.slice(0,25).map(card).join(''):'<div class="note">Sem notícias de câmbio ainda. Elas aparecem aqui depois da primeira coleta do robô.</div>';
+  // itens vindos de plataformas com login (StoneX, Safras) — fase futura
+  const items=(s&&s.items)||[];
+  if(items.length){
+    h+=`<div class="section-h">Relatórios das plataformas</div>`+items.slice(0,40).map(card).join('');
+  }
+  if(s&&s.updatedAt) h+=`<div class="note">Atualizado em ${new Date(s.updatedAt).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}.</div>`;
+  v.innerHTML=h;
+}
 
 /* ---------------- form ---------------- */
 const $=id=>document.getElementById(id);
@@ -1156,7 +1294,7 @@ document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===b));
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   $('view-'+activeTab).classList.add('active');
-  $('fab').style.display = activeTab==='mercado' ? 'none' : '';
+  $('fab').style.display = (activeTab==='mercado'||activeTab==='agro') ? 'none' : '';
   render();
 });
 $('fab').onclick=()=>openForm(null);
