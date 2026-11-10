@@ -1479,6 +1479,7 @@ async function deleteOp(){
 const TK_AREAS=['Trabalho','Faculdade','Pessoal','Casa','Saúde','Finanças','Outro'];
 const TK_URG=[{v:0,l:'Baixa'},{v:1,l:'Média'},{v:2,l:'Alta'},{v:3,l:'Urgente'}];
 const TK_REP={diaria:'Todo dia',uteis:'Dias úteis',semanal:'Toda semana',quinzenal:'A cada 2 semanas',mensal:'Todo mês',anual:'Todo ano'};
+let tkMode='lista', tkWk=0, tkMo=0, tkYr=new Date().getFullYear();
 let tkView='prazo', tkArea='todas', tkSearch='', tkShowDone=false, tkFocus='', editingTk=null, tkUrg=1;
 
 const dIso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
@@ -1554,11 +1555,13 @@ function tkRow(t){
 }
 function renderTarefas(){
   const v=$('view-tarefas'); const today=tkToday();
+  const modeBar=`<div class="toggle"><button data-tmode="lista" class="${tkMode==='lista'?'on':''}">Lista</button><button data-tmode="prod" class="${tkMode==='prod'?'on':''}">Produtividade</button></div>`;
+  if(tkMode==='prod'){ v.innerHTML=modeBar+renderProd(); return; }
   const abertas=tkOpen();
   const cnt=k=>abertas.filter(t=>tkBucket(t)===k).length;
-  const feitasHoje=DB.tarefas.filter(t=>t.feita&&t.feitaEm===today).length + ((DB.tkLog&&DB.tkLog[today])||0);
+  const feitasHoje=DB.tarefas.filter(t=>t.feita&&t.feitaEm===today).length + (DB.tkHist||[]).filter(h=>h.feitaEm===today).length;
   const stat=(f,label,val,cls='')=>`<button class="card ${tkFocus===f?'on':''}" data-tfocus="${f}" style="cursor:pointer"><div class="k">${label}</div><div class="v num ${cls}">${val}</div></button>`;
-  let h=`<div class="tk-stats">
+  let h=modeBar+`<div class="tk-stats">
     ${stat('atrasada','Atrasadas',cnt('atrasada'),cnt('atrasada')?'neg':'')}
     ${stat('hoje','Hoje',cnt('hoje'),cnt('hoje')?'gold':'')}
     ${stat('semana','Até domingo',cnt('semana')+cnt('hoje')+cnt('atrasada'))}
@@ -1590,7 +1593,7 @@ function renderTarefas(){
     else{ const areas=[...new Set([...TK_AREAS,...list.map(t=>t.area)])]; areas.forEach(a=>{ h+=group(a,list.filter(t=>t.area===a)); }); }
     if(!list.length) h+=`<div class="empty"><div class="e-ic">☑</div><h3>${abertas.length?'Nada por aqui':'Sem tarefas'}</h3><p>${abertas.length?'Nenhuma tarefa com esses filtros.':'Toque no + ou digite acima para criar a primeira.'}</p></div>`;
   }
-  const feitas=DB.tarefas.filter(t=>t.feita).sort((a,b)=>(a.feitaEm||'')<(b.feitaEm||'')?1:-1);
+  const feitas=DB.tarefas.filter(t=>t.feita&&!t.arq).sort((a,b)=>(a.feitaEm||'')<(b.feitaEm||'')?1:-1);
   if(feitas.length){
     h+=`<div class="section-h tk-gh" style="cursor:pointer" data-tdone="1"><span>${tkShowDone?'▾':'▸'} Concluídas</span><span>${feitas.length}</span></div>`;
     if(tkShowDone) h+=feitas.slice(0,50).map(tkRow).join('')+`<button class="btn ghost" id="tkClearDone" style="width:100%;margin-top:6px">Limpar concluídas</button>`;
@@ -1599,13 +1602,88 @@ function renderTarefas(){
   v.innerHTML=h;
   if(hadSearch){ const s=$('tkSearch'); if(s){ s.focus(); s.setSelectionRange(s.value.length,s.value.length); } }
 }
+/* ---- produtividade ----
+   Meta = tudo que tinha prazo dentro do período (feito ou não). Tarefa sem prazo que você concluiu
+   entra no dia em que foi concluída (conta como planejada e feita, para não inflar o %).
+   Tarefas que se repetem entram pela ocorrência atual + cada vez que você concluiu (histórico). */
+function tkRecords(){
+  const r=[];
+  DB.tarefas.forEach(t=>{
+    const due=t.prazo||null, urg=t.urg||0;
+    if(t.rep){ if(due) r.push({area:t.area,urg,due,done:null}); }
+    else{ const done=t.feita?(t.feitaEm||null):null; if(due||done) r.push({area:t.area,urg,due,done}); }
+  });
+  (DB.tkHist||[]).forEach(h=>r.push({area:h.area,urg:h.urg||0,due:h.prazo||null,done:h.feitaEm}));
+  return r;
+}
+function tkStats(a,b){
+  const W=[1,2,3,4]; let p=0,d=0,onT=0,pp=0,dp=0,fe=0; const area={};
+  tkRecords().forEach(r=>{
+    if(r.done&&r.done>=a&&r.done<=b) fe++;
+    const e=r.due||r.done; if(!e||e<a||e>b) return;
+    const w=W[r.urg]||1, k=r.area||'Outro'; p++; pp+=w;
+    const A=area[k]||(area[k]={p:0,d:0}); A.p++;
+    if(r.done){ d++; dp+=w; A.d++; if(!r.due||r.done<=r.due) onT++; }
+  });
+  return {p,d,onT,pp,dp,fe,pct:p?d/p:null,pctW:pp?dp/pp:null,area};
+}
+function weekStart(iso){ const d=new Date(iso+'T00:00'); d.setDate(d.getDate()-((d.getDay()+6)%7)); return dIso(d); }
+const pCls=p=>p==null?'':p>=.8?'pos':p>=.5?'gold':'neg';
+const pPct=p=>p==null?'—':Math.round(p*100)+'%';
+function prodCard(title,range,st,navKey,isNow){
+  const p=st.pct, col=p==null?'var(--line2)':p>=.8?'var(--pos)':p>=.5?'var(--gold)':'var(--neg)';
+  const areas=Object.entries(st.area).sort((x,y)=>y[1].p-x[1].p);
+  return `<div class="card" style="margin-bottom:12px">
+    <div class="tk-gh" style="margin-bottom:8px"><div><div style="font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted2);font-weight:600">${title}${isNow?' · atual':''}</div><div style="font-size:12.5px;color:var(--muted);margin-top:2px">${range}</div></div>
+      <div style="display:flex;gap:6px"><button class="iconbtn" data-pnav="${navKey}:-1" aria-label="Anterior">‹</button><button class="iconbtn" data-pnav="${navKey}:1" aria-label="Próximo">›</button></div></div>
+    <div style="display:flex;align-items:baseline;gap:10px"><div class="v num ${pCls(p)}" style="font-size:38px;font-weight:700;line-height:1">${pPct(p)}</div>
+      <div style="font-size:13px;color:var(--muted)">da meta · <b class="num" style="color:var(--ink)">${st.d}</b> de <b class="num" style="color:var(--ink)">${st.p}</b> tarefas</div></div>
+    <div class="track"><div class="fill" style="width:${Math.round((p||0)*100)}%;background:${col}"></div></div>
+    <div class="metafoot"><span>${st.p?`${st.onT} no prazo · ${st.d-st.onT} com atraso · ${st.p-st.d} pendentes`:'Sem tarefas com prazo neste período'}</span><span>ponderado: ${pPct(st.pctW)}</span></div>
+    ${areas.length?`<div class="alloc" style="margin-top:12px">${areas.map(([a,v])=>`<div class="arow"><span class="acat">${escH(a)}</span><div class="abar"><i style="width:${v.p?Math.round(v.d/v.p*100):0}%;background:${v.d/v.p>=.8?'var(--pos)':v.d/v.p>=.5?'var(--gold)':'var(--neg)'}"></i></div><span class="aval num">${v.d}/${v.p}</span></div>`).join('')}</div>`:''}
+    <div class="metafoot" style="margin-top:8px"><span>Concluídas no período (inclui sem prazo): <b class="num" style="color:var(--ink)">${st.fe}</b></span></div>
+  </div>`;
+}
+function renderProd(){
+  const today=tkToday(), t0=new Date(today+'T00:00');
+  // semana
+  const ws=dAdd(weekStart(today),7*tkWk), we=dAdd(ws,6);
+  const wk=prodCard('Semana',`${fmtDate(ws)} – ${fmtDate(we)}`,tkStats(ws,we),'wk',tkWk===0);
+  // mês
+  const md=new Date(t0.getFullYear(),t0.getMonth()+tkMo,1), ms=dIso(md), me=endOfMonth(ms);
+  const mo=prodCard('Mês',`${MONF[md.getMonth()]} ${md.getFullYear()}`,tkStats(ms,me),'mo',tkMo===0);
+  // ano
+  const ys=tkYr+'-01-01', ye=tkYr+'-12-31', yst=tkStats(ys,ye);
+  const curY=t0.getFullYear(), curM=t0.getMonth();
+  const bars=MON.map((m,i)=>{
+    const a=tkYr+'-'+String(i+1).padStart(2,'0')+'-01', st=tkStats(a,endOfMonth(a));
+    const future=tkYr>curY||(tkYr===curY&&i>curM);
+    const p=(future||st.pct==null)?null:st.pct;
+    const hgt=p==null?3:Math.max(3,Math.round(p*100));
+    const cl=p==null?'':p>=.8?'g':p<.5?'r':'';
+    return `<div class="bcol"><span class="lbl num">${p==null?'—':Math.round(p*100)}</span><div class="bar ${cl}" style="height:${hgt}px;${p==null?'opacity:.25':''}"></div><span class="lbl">${m}</span></div>`;
+  }).join('');
+  const yr=`<div class="card" style="margin-bottom:12px">
+    <div class="tk-gh" style="margin-bottom:8px"><div><div style="font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted2);font-weight:600">Ano ${tkYr}${tkYr===curY?' · atual':''}</div><div style="font-size:12.5px;color:var(--muted);margin-top:2px">produtividade mês a mês (% da meta cumprida)</div></div>
+      <div style="display:flex;gap:6px"><button class="iconbtn" data-pnav="yr:-1" aria-label="Ano anterior">‹</button><button class="iconbtn" data-pnav="yr:1" aria-label="Próximo ano">›</button></div></div>
+    <div style="display:flex;align-items:baseline;gap:10px"><div class="v num ${pCls(yst.pct)}" style="font-size:38px;font-weight:700;line-height:1">${pPct(yst.pct)}</div>
+      <div style="font-size:13px;color:var(--muted)">no ano · <b class="num" style="color:var(--ink)">${yst.d}</b> de <b class="num" style="color:var(--ink)">${yst.p}</b> tarefas</div></div>
+    <div class="track"><div class="fill" style="width:${Math.round((yst.pct||0)*100)}%;background:${yst.pct>=.8?'var(--pos)':yst.pct>=.5?'var(--gold)':'var(--neg)'}"></div></div>
+    <div class="metafoot"><span>${yst.onT} no prazo · ${yst.d-yst.onT} com atraso · ${yst.p-yst.d} pendentes</span><span>ponderado: ${pPct(yst.pctW)}</span></div>
+    <div class="barchart" style="margin-top:14px">${bars}</div>
+  </div>`;
+  // últimas 8 semanas
+  const wb=[]; for(let i=7;i>=0;i--){ const a=dAdd(weekStart(today),-7*i), st=tkStats(a,dAdd(a,6)); const p=st.pct;
+    wb.push(`<div class="bcol"><span class="lbl num">${p==null?'—':Math.round(p*100)}</span><div class="bar ${p==null?'':p>=.8?'g':p<.5?'r':''}" style="height:${p==null?3:Math.max(3,Math.round(p*100))}px;${p==null?'opacity:.25':''}"></div><span class="lbl">${fmtDate(a).replace(' de','')}</span></div>`); }
+  const wkh=`<div class="card" style="margin-bottom:12px"><div style="font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted2);font-weight:600;margin-bottom:6px">Últimas 8 semanas</div><div class="barchart">${wb.join('')}</div></div>`;
+  return `<div class="dcols"><div>${wk}${mo}${wkh}</div><div>${yr}<div class="note" style="margin-top:0">Como é calculado: a <b>meta</b> é o conjunto de tarefas com prazo dentro do período; o <b>%</b> é quanto disso você concluiu. Verde ≥ 80%, amarelo ≥ 50%, vermelho abaixo. "Ponderado" dá mais peso a tarefas urgentes (Baixa 1 · Média 2 · Alta 3 · Urgente 4). Tarefas que se repetem entram a cada vez que você as conclui; ocorrências que você pulou sem concluir não são contadas.</div></div></div>`;
+}
 async function tkToggle(id){
   const t=DB.tarefas.find(x=>x.id===id); if(!t) return;
   if(t.feita){ t.feita=false; t.feitaEm=null; await save(); render(); return; }
   if(t.rep){
     const nx=tkNext(t), today=tkToday();
-    DB.tkLog=DB.tkLog||{}; DB.tkLog[today]=(DB.tkLog[today]||0)+1;
-    Object.keys(DB.tkLog).forEach(k=>{ if(dDiff(today,k)>14) delete DB.tkLog[k]; });
+    DB.tkHist=DB.tkHist||[]; DB.tkHist.push({tid:t.id,titulo:t.titulo,area:t.area,urg:t.urg||0,prazo:t.prazo||null,feitaEm:today});
     t.prazo=nx; t.vezes=(t.vezes||0)+1;
     await save(); render(); toast('Feito! Próxima: '+fmtDate(nx));
   }else{
@@ -1661,7 +1739,9 @@ document.addEventListener('click',async e=>{
   const ar=e.target.closest('[data-tarea]'); if(ar){ tkArea=ar.dataset.tarea; renderTarefas(); return; }
   if(e.target.closest('[data-tdone]')){ tkShowDone=!tkShowDone; renderTarefas(); return; }
   if(e.target.closest('#tkQuickBtn')){ tkQuickAdd(); return; }
-  if(e.target.closest('#tkClearDone')){ if(confirm('Apagar todas as tarefas concluídas?')){ DB.tarefas=DB.tarefas.filter(t=>!t.feita); await save(); render(); } return; }
+  if(e.target.closest('#tkClearDone')){ if(confirm('Esconder todas as tarefas concluídas da lista? (elas continuam contando na produtividade)')){ DB.tarefas.forEach(t=>{ if(t.feita) t.arq=true; }); await save(); render(); } return; }
+  const md=e.target.closest('[data-tmode]'); if(md){ tkMode=md.dataset.tmode; renderTarefas(); return; }
+  const pn=e.target.closest('[data-pnav]'); if(pn){ const [k,d]=pn.dataset.pnav.split(':'); if(k==='wk') tkWk+=+d; else if(k==='mo') tkMo+=+d; else tkYr+=+d; renderTarefas(); return; }
 });
 document.addEventListener('keydown',e=>{ if(e.target.id==='tkQuick'&&e.key==='Enter') tkQuickAdd(); });
 document.addEventListener('input',e=>{ if(e.target.id==='tkSearch'){ tkSearch=e.target.value; renderTarefas(); } });
